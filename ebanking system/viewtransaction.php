@@ -1,9 +1,21 @@
 <?php
+ include("connect.php");
   if(!isset($_SESSION)) {
     session_start();
-    
 }
-$sql='';
+$sqll='';
+if(isset($_SESSION["loggedIn_users_id"]))
+    $id = $_SESSION['loggedIn_users_id'];
+    $sql1 = "SELECT * FROM account_details WHERE users_id=".$id;
+    $result1 = $conn->query($sql1);
+    if($result1 !==false && $result1->num_rows > 0)
+    if ($result1->num_rows > 0) {
+        // output data of each row
+        while($row = $result1->fetch_assoc()) {
+            
+            $acno = $row["account_no"];
+        }
+    }
 ?>
 <!DOCTYPE html>
 <html>
@@ -28,58 +40,77 @@ $sql='';
 </head>
 <body>
 
- <div class="container">
-        <div class="row">
-            <div class="col-md-12">
-                <table class="table table-hover">
-                    <tr>
-                        <th>Transaction ID</th>
-                        <th>Payer Account No.</th>
-                        <th>Transaction Date</th>
-                        <th>Amount</th>
-                        <th>Trasaction Type</th>
-                    </tr>
-            <?php
-            include("connect.php");
-            if(isset($_SESSION["account_no"]))
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <table class="table table-hover">
+                <tr>
+                    <th>Transaction ID</th>
+                    <th>Account No.</th>
+                    <th>Transaction Date</th>
+                    <th>Amount</th>
+                    <th>Transaction Type</th>
+                </tr>
 
-            
-            $sql = mysqli_query($conn,"SELECT * FROM transaction WHERE from_acc_no = $_SESSION[account_no] or to_acc_no = $_SESSION[account_no] order by trans_id desc");
-           
-            while($row = mysqli_fetch_row($sql)){
-    
-                if($row['from_acc_no'] ==  $_SESSION['account_no']){?>
-                    <tr>
-                        <td><?php echo $row[0];?></td>
-                        <td><?php echo $row[2];?></td>
-                        <td><?php echo $row[4];?></td>
-                        <td><?php echo $row[3];?></td>
-                        <td><h5 style="color: red;">Debit</h5></td>
-                    </tr>
-            <?php   
-        }
-                    if($row['to_acc_no'] == $_SESSION['account_no']){?>
-                    <tr>
-                        <td><?php echo $row[0];?></td>
-                        <td><?php echo $row[1];?></td>
-                        <td><?php echo $row[4];?></td>
-                        <td><?php echo $row[3];?></td>
-                        <td><h5 style="color: Green;">Credit</h5></td>
-
-                    </tr>
-                    <?php
+                <?php
+                // Check if user is logged in and has a session variable set
+                if (isset($_SESSION["loggedIn_users_id"])) {
+                    // Build SQL query to retrieve transactions for the logged-in user
+                    $query = "SELECT * FROM transaction WHERE from_acc_no = $acno OR to_acc_no = $acno ORDER BY trans_id DESC";
                     
+                    $result = mysqli_query($conn, $query);
+
+                    // Check if query executed successfully
+                    if (!$result) {
+                        die('Query failed: ' . mysqli_error($conn));
+                    }
+
+                    // Check if $result has rows
+                    if (mysqli_num_rows($result) > 0) {
+                        // Fetch and display transaction details
+                        while ($row = mysqli_fetch_assoc($result)) {
+                            ?>
+                            <tr>
+                                <td><?php echo $row['trans_id']; ?></td>
+                                <td>
+                                    <?php
+                                    if ($row['from_acc_no'] == $acno) {
+                                        echo $row['to_acc_no'];
+                                    } elseif ($row['to_acc_no'] ==$acno) {
+                                        echo $row['from_acc_no'];
+                                    }
+                                    ?>
+                                </td>
+                                <td><?php echo $row['trans_date']; ?></td>
+                                <td><?php echo $row['amount']; ?></td>
+                                <td>
+                                    <?php
+                                    if ($row['from_acc_no'] == $acno) {
+                                        echo '<h5 style="color: red;">Debit</h5>';
+                                    } elseif ($row['to_acc_no'] == $acno) {
+                                        echo '<h5 style="color: green;">Credit</h5>';
+                                    }
+                                    ?>
+                                </td>
+                            </tr>
+                            <?php
+                        }
+                    } else {
+                        echo "<tr><td colspan='5'>No transactions found.</td></tr>";
+                    }
+
+                    // Free result set
+                    mysqli_free_result($result);
+                } else {
+                    echo "<tr><td colspan='5'>Session account_no not set.</td></tr>";
                 }
-            
-                
-            } ?>
-                </table>
-                
-            </div>
-            
+                ?>
+            </table>
         </div>
-        
     </div>
+</div>
+
+
 
 <script src="js/jquery.min.js"></script>
     <script src="js/popper.min.js"></script>
